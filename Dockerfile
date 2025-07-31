@@ -6,6 +6,7 @@ ARG NAME
 
 ENV NAME=${NAME}
 # ENV PIP_SOURCE="https://pypi.tuna.tsinghua.edu.cn/simple"
+ENV PIP_SOURCE="https://pypi.org/simple"
 ENV HF_ENDPOINT=https://hf-mirror.com
 
 # 设置工作目录
