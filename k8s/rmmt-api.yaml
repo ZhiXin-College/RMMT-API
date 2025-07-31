@@ -66,19 +66,14 @@ spec:
               key: DB_USER
         - name: DB_PASSWORD
           valueFrom:
-            secretKeyRef:
-              name: rmmt-secrets
+            configMapKeyRef:
+              name: rmmt-config
               key: DB_PASSWORD
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
               name: rmmt-secrets
               key: JWT_SECRET
-        - name: API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: rmmt-secrets
-              key: API_KEY
         resources:
           requests:
             memory: "256Mi"
@@ -99,3 +94,20 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rmmt-api
+  namespace: rmmt
+  labels:
+    app: rmmt-api
+spec:
+  selector:
+    app: rmmt-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+    protocol: TCP
+  type: ClusterIP

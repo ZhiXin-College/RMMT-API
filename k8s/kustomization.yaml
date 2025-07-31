@@ -17,14 +17,10 @@ resources:
   - security-monitoring.yaml
   
   # 应用部署
-  - rmmt-api-deployment.yaml
-  - rmmt-api-service.yaml
-  - rmmt-student-deployment.yaml
-  - rmmt-student-service.yaml
-  - rmmt-admin-deployment.yaml
-  - rmmt-admin-service.yaml
-  - rmmt-db-deployment.yaml
-  - rmmt-db-service.yaml
+  - rmmt-api.yaml
+  - rmmt-student.yaml
+  - rmmt-admin.yaml
+  - rmmt-db-mysql.yaml
 
 commonLabels:
   app: roommate-matcher

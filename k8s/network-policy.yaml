@@ -193,28 +193,52 @@ spec:
   podSelector:
     matchLabels:
       app: rmmt-db
-  
-  # 入站规则
   ingress:
-  # 允许API访问数据库
   - from:
     - podSelector:
         matchLabels:
           app: rmmt-api
+    - podSelector:
+        matchLabels:
+          app: debug
     ports:
     - protocol: TCP
       port: 3306
-  
-  # 出站规则
   egress:
-  # 允许DNS查询
   - to: []
     ports:
-    - protocol: UDP
-      port: 53
     - protocol: TCP
       port: 53
+    - protocol: UDP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: debug-network-policy
+  namespace: rmmt
+spec:
+  podSelector:
+    matchLabels:
+      app: debug
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 3306
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  ingress:
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
   
-  policyTypes:
-  - Ingress
-  - Egress

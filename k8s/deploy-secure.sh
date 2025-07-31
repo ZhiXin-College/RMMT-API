@@ -48,13 +48,10 @@ kubectl apply -f ./security-monitoring.yaml
 
 # 4. 部署应用
 echo -e "${YELLOW}4️⃣ 部署应用...${NC}"
-kubectl apply -f ./rmmt-db-deployment.yaml
-kubectl apply -f ./rmmt-api-deployment.yaml
-kubectl apply -f ./rmmt-api-service.yaml
-kubectl apply -f ./rmmt-student-deployment.yaml
-kubectl apply -f ./rmmt-student-service.yaml
-kubectl apply -f ./rmmt-admin-deployment.yaml
-kubectl apply -f ./rmmt-admin-service.yaml
+kubectl apply -f ./rmmt-db-mysql.yaml
+kubectl apply -f ./rmmt-api.yaml
+kubectl apply -f ./rmmt-student.yaml
+kubectl apply -f ./rmmt-admin.yaml
 
 # 5. 部署安全Ingress
 echo -e "${YELLOW}5️⃣ 部署安全Ingress...${NC}"
@@ -62,7 +59,7 @@ kubectl apply -f ./ingress-secure.yaml
 
 # 等待部署完成
 echo -e "${YELLOW}⏳ 等待部署完成...${NC}"
-kubectl wait --for=condition=available --timeout=300s deployment/rmmt-db -n rmmt
+kubectl wait --for=condition=available --timeout=300s statefulset/rmmt-db -n rmmt
 kubectl wait --for=condition=available --timeout=300s deployment/rmmt-api -n rmmt
 kubectl wait --for=condition=available --timeout=300s deployment/rmmt-student -n rmmt
 kubectl wait --for=condition=available --timeout=300s deployment/rmmt-admin -n rmt

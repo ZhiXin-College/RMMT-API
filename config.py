@@ -11,9 +11,6 @@ class GeneralConfig:
     
     # 构建数据库URL
     DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    
     JWT_SECRET_KEY = os.getenv('JWT_SECRET', "R2xpmzp1F9QcpHn9")
-    DATABASE_LOG = os.getenv('DATABASE_LOG', 'True').lower() == 'true'
-    ASYNC_JOB_SCAN_INTERVAL = int(os.getenv('ASYNC_JOB_SCAN_INTERVAL', '10'))  # in seconds
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    DATABASE_LOG = False
+    ASYNC_JOB_SCAN_INTERVAL = 10  # in seconds

@@ -1,11 +1,42 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: rmmt-db-pv-volume
+  namespace: rmmt
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/rmmt-db"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rmmt-db-pv-claim
+  namespace: rmmt
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rmmt-db
   namespace: rmmt
   labels:
     app: rmmt-db
 spec:
+  serviceName: rmmt-db
   replicas: 1
   selector:
     matchLabels:
@@ -23,22 +54,22 @@ spec:
       containers:
       - name: mysql
         image: mysql:8.0
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 999
-          capabilities:
-            drop:
-            - ALL
         ports:
         - containerPort: 3306
           name: mysql
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
               name: rmmt-secrets
-              key: DB_PASSWORD
+              key: MYSQL_ROOT_PASSWORD
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
@@ -54,16 +85,6 @@ spec:
             secretKeyRef:
               name: rmmt-secrets
               key: DB_PASSWORD
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-        volumeMounts:
-        - name: mysql-data
-          mountPath: /var/lib/mysql
         livenessProbe:
           tcpSocket:
             port: 3306
@@ -75,8 +96,9 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:
-      - name: mysql-data
-        emptyDir: {}
+      - name: rmmt-db-pv-volume
+        persistentVolumeClaim:
+          claimName: rmmt-db-pv-claim
       restartPolicy: Always
 ---
 apiVersion: v1

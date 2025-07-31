@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rmmt-student
+  name: rmmt-admin
   namespace: rmmt
   labels:
-    app: rmmt-student
+    app: rmmt-admin
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: rmmt-student
+      app: rmmt-admin
   template:
     metadata:
       labels:
-        app: rmmt-student
+        app: rmmt-admin
     spec:
       securityContext:
         runAsNonRoot: true
@@ -23,8 +23,8 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - name: rmmt-student
-        image: rmmt-student:latest
+      - name: rmmt-admin
+        image: rmmt-admin:latest
         imagePullPolicy: Never
         securityContext:
           allowPrivilegeEscalation: false
@@ -40,7 +40,7 @@ spec:
           name: http
         env:
         - name: NUXT_API_URL
-          value: "https://rmmt-api.rmmt.svc.cluster.local"
+          value: "http://rmmt-api.rmmt.svc.cluster.local"
         resources:
           requests:
             memory: "128Mi"
@@ -61,3 +61,20 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
       restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rmmt-admin
+  namespace: rmmt
+  labels:
+    app: rmmt-admin
+spec:
+  selector:
+    app: rmmt-admin
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  type: ClusterIP
