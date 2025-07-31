@@ -29,6 +29,10 @@ COPY . /app
 RUN mv /etc/localtime localtime.bak
 RUN ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
+RUN mkdir -p /app/log
+RUN touch /app/log/access.log
+RUN touch /app/log/error.log
+
 EXPOSE 5000
 
 # 设置入口点
