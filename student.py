@@ -787,7 +787,7 @@ def get_student_detail(id):
         "data": student.to_dict(
             only=['id', 'name', 'team', 'team_id', 'score', 'questionnaire_answers', 'contact', 'team.id',
                   'team.students.id', 'qq', 'wechat', 'province', 'mbti',
-                  'team.students.name', 'team.students.contact', 'team.students.qq', 'team.students.wechat',
+                  'team.students.name', 'team.students.contact', 'team.students.qq', 'team.students.wechat', 'team.students.province',
                   'team.students.mbti', 'has_answered_questionnaire'])
     })
 
@@ -805,7 +805,7 @@ def get_team_detail():
         "msg": "success",
         "data": current_user.team.to_dict(['id', 'description', 'students.id',
                                            'students.name', 'students.contact', 'students.qq', 'students.wechat' ,'students.has_answered_questionnaire',
-                                           'students.questionnaire_answers'])
+                                           'students.mbti', 'students.province', 'students.questionnaire_answers'])
     })
 
 

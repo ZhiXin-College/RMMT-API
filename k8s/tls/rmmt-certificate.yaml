@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rmmt-tls
+  namespace: rmmt
+spec:
+  # 证书的Secret名称
+  secretName: rmmt-tls
+  
+  # 证书颁发者
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  
+  # 域名列表
+  dnsNames:
+  - roommate.seth24.com
+  - rmapi.seth24.com
+  - rmadmin.seth24.com
+  
+  # 证书有效期（天）
+  duration: 2160h # 90天
+  
+  # 续期时间（证书到期前多久开始续期）
+  renewBefore: 360h # 15天 

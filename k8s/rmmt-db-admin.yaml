@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmmt-db-admin
+  namespace: rmmt
+  labels:
+    app: rmmt-db-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmmt-db-admin
+  template:
+    metadata:
+      labels:
+        app: rmmt-db-admin
+    spec:
+      containers:
+      - name: adminer
+        image: adminer:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: ADMINER_DEFAULT_SERVER
+          value: "rmmt-db.rmmt.svc.cluster.local"
+        - name: ADMINER_DESIGN
+          value: "pepa-linha-dark"
+        command: ["php", "-S", "0.0.0.0:8080"]
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rmmt-db-admin
+  namespace: rmmt
+  labels:
+    app: rmmt-db-admin
+spec:
+  selector:
+    app: rmmt-db-admin
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP 

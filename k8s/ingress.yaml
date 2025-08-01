@@ -4,19 +4,46 @@ metadata:
   name: rmmt-ingress
   namespace: rmmt
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # 启用TLS
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # 强制HTTPS重定向
+    traefik.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # 启用CORS
+    traefik.ingress.kubernetes.io/cors-allow-origin: "*"
+    traefik.ingress.kubernetes.io/cors-allow-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    traefik.ingress.kubernetes.io/cors-allow-headers: "Content-Type,Authorization"
+    
+    # 请求大小限制
+    traefik.ingress.kubernetes.io/request-body-size: "10m"
+    
+    # 超时设置
+    traefik.ingress.kubernetes.io/forward-auth-timeout: "30s"
+    traefik.ingress.kubernetes.io/forward-auth-trust-forward-header: "true"
+    
+    # 安全头（通过注解实现）
+    traefik.ingress.kubernetes.io/headers-custom-response-headers: "X-Frame-Options:SAMEORIGIN,X-Content-Type-Options:nosniff,X-XSS-Protection:1; mode=block,Referrer-Policy:no-referrer-when-downgrade,Content-Security-Policy:default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval'"
+    
+    # 速率限制（通过注解实现）
+    traefik.ingress.kubernetes.io/rate-limit: "100"
+    traefik.ingress.kubernetes.io/rate-limit-burst: "200"
+    
+    # 白名单IP（可选，取消注释以启用）
+    # traefik.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
 spec:
+  ingressClassName: traefik
   tls:
   - hosts:
-    - student.jaredanjerry.top
-    - admin.jaredanjerry.top
-    - api.jaredanjerry.top
+    - roommate.seth24.com
+    - rmapi.seth24.com
+    - rmadmin.seth24.com
     secretName: rmmt-tls
+  
   rules:
-  - host: student.jaredanjerry.top
+  # 学生前端服务
+  - host: roommate.seth24.com
     http:
       paths:
       - path: /
@@ -26,7 +53,9 @@ spec:
             name: rmmt-student
             port:
               number: 80
-  - host: admin.jaredanjerry.top
+  
+  # 管理员前端服务
+  - host: rmadmin.seth24.com
     http:
       paths:
       - path: /
@@ -36,13 +65,15 @@ spec:
             name: rmmt-admin
             port:
               number: 80
-  - host: api.jaredanjerry.top
+  
+  # 数据库管理界面
+  - host: rmapi.seth24.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: rmmt-api
+            name: rmmt-db-admin
             port:
-              number: 80
+              number: 80 

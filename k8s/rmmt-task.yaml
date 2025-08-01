@@ -1,27 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rmmt-api
+  name: rmmt-task
   namespace: rmmt
   labels:
-    app: rmmt-api
+    app: rmmt-task
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: rmmt-api
+      app: rmmt-task
   template:
     metadata:
       labels:
-        app: rmmt-api
+        app: rmmt-task
     spec:
       containers:
-      - name: rmmt-api
+      - name: rmmt-task
         image: rmmt-api:latest
         imagePullPolicy: Never
-        ports:
-        - containerPort: 5000
-          name: http
+        command: ["/bin/sh", "-c", "python tasks.py >> log/tasks.log"]
         env:
         - name: NODE_ENV
           valueFrom:
@@ -58,32 +56,22 @@ spec:
             secretKeyRef:
               name: rmmt-secrets
               key: JWT_SECRET
+        - name: NAME
+          value: "rmmt-api-task"
+        - name: HF_ENDPOINT
+          value: "https://hf-mirror.com"
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
             memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
             cpu: "500m"
+        # 添加日志卷挂载
+        volumeMounts:
+        - name: log-volume
+          mountPath: /app/log
+      volumes:
+      - name: log-volume
+        emptyDir: {}
       restartPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rmmt-api
-  namespace: rmmt
-  labels:
-    app: rmmt-api
-spec:
-  selector:
-    app: rmmt-api
-  ports:
-  - name: http
-    port: 80
-    targetPort: 5000
-    protocol: TCP
-  - name: https
-    port: 443
-    targetPort: 5000
-    protocol: TCP
-  type: ClusterIP

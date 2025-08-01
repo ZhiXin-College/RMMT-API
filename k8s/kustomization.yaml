@@ -8,19 +8,21 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - secret.yaml
-  
-  # 安全配置
-  - ingress-secure.yaml
-  - network-policy.yaml
-  - pod-security-policy.yaml
-  - waf-configmap.yaml
-  - security-monitoring.yaml
+
+  # TLS
+  - tls/cert-manager.yaml
+  - tls/cluster-issuer.yaml
+  - tls/rmmt-certificate.yaml
   
   # 应用部署
   - rmmt-api.yaml
   - rmmt-student.yaml
   - rmmt-admin.yaml
   - rmmt-db-mysql.yaml
+  - rmmt-db-admin.yaml
+
+  # Ingress
+  - ingress.yaml
 
 commonLabels:
   app: roommate-matcher

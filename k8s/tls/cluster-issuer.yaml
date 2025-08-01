@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  namespace: rmmt
+spec:
+  acme:
+    # Let's Encrypt生产环境服务器
+    server: https://acme-v02.api.letsencrypt.org/directory
+    
+    # 用于存储ACME账户私钥的Secret
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    
+    # 用于验证域名所有权的HTTP-01挑战
+    solvers:
+    - http01:
+        ingress:
+          class: traefik 

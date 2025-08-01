@@ -15,32 +15,18 @@ spec:
       labels:
         app: rmmt-student
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
       containers:
       - name: rmmt-student
         image: rmmt-student:latest
         imagePullPolicy: Never
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          capabilities:
-            drop:
-            - ALL
-          seccompProfile:
-            type: RuntimeDefault
         ports:
         - containerPort: 80
           name: http
         env:
         - name: NUXT_API_URL
-          value: "http://rmmt-api.rmmt.svc.cluster.local"
+          value: "https://rmmt-api.rmmt.svc.cluster.local"
+        - name: NODE_ENV
+          value: "production"
         resources:
           requests:
             memory: "128Mi"
@@ -48,18 +34,6 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
       restartPolicy: Always
 ---
 apiVersion: v1
@@ -75,6 +49,10 @@ spec:
   ports:
   - name: http
     port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
     targetPort: 80
     protocol: TCP
   type: ClusterIP

@@ -7,23 +7,52 @@
 ## 架构说明
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   RMMT-Student  │    │   RMMT-Admin    │    │   RMMT-API      │
-│   (Frontend)    │    │   (Frontend)    │    │   (Backend)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   Ingress       │
-                    │   Controller    │
-                    └─────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   External      │
-                    │   Traffic       │
-                    └─────────────────┘
+            ┌───────────────────────────────┐
+            │         External Traffic      │
+            └──────────────┬────────────────┘
+                           │
+                ┌──────────▼──────────┐
+                │   Traefik Ingress   │
+                │     Controller      │
+                └──────────┬──────────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+┌───────▼───────┐  ┌───────▼───────┐  ┌───────▼───────┐
+│ RMMT-Student  │  │ RMMT-Admin    │  │ RMMT-DB-Admin │
+│ (Frontend)    │  │ (Frontend)    │  │ (DB Manager)  │
+└───────┬───────┘  └───────┬───────┘  └───────┬───────┘
+        │                  │                  │
+        └──────────┬───────┴───────┐          │
+                   │               │          │
+             ┌─────▼─────┐   ┌─────▼─────┐    │
+             │ RMMT-API  │   │ RMMT-Task │    │
+             │ (Backend) │   │ (Worker)  │    │
+             └─────┬─────┘   └───────────┘    │
+                   │                          │
+           ┌───────▼────────┐                 │
+           │ RMMT-DB-MySQL  │                 │
+           │  (Database)    │─────────────────┘
+           └────────────────┘
 ```
+
+## 当前技术栈
+
+### Ingress Controller
+- **当前使用**: Traefik Ingress Controller
+- **版本**: v2.10+
+- **特点**: 
+  - 自动服务发现
+  - 内置负载均衡
+  - 支持Let's Encrypt自动证书
+  - 基本安全头配置
+
+### 安全配置
+- **TLS/SSL**: Let's Encrypt自动证书
+- **安全头**: X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- **CORS**: 跨域资源共享配置
+- **速率限制**: 基本请求频率限制
+- **HTTPS重定向**: 强制HTTP到HTTPS重定向
 
 ## 文件结构
 
@@ -32,49 +61,55 @@ k8s/
 ├── namespace.yaml              # 命名空间定义
 ├── configmap.yaml             # 配置映射
 ├── secret.yaml                # 密钥配置
-├── rmmt-api-deployment.yaml   # API服务部署
-├── rmmt-api-service.yaml      # API服务定义
-├── rmmt-student-deployment.yaml # 学生前端部署
-├── rmmt-student-service.yaml  # 学生前端服务
-├── rmmt-admin-deployment.yaml # 管理前端部署
-├── rmmt-admin-service.yaml    # 管理前端服务
-├── ingress.yaml               # 入口配置
-├── kustomization.yaml         # Kustomize配置
-└── README.md                  # 本文件
+├── rmmt-api.yaml             # API服务部署和服务
+├── rmmt-student.yaml         # 学生前端部署和服务
+├── rmmt-admin.yaml           # 管理前端部署和服务
+├── rmmt-db-mysql.yaml        # MySQL数据库部署
+├── rmmt-db-admin.yaml        # Adminer数据库管理界面
+├── rmmt-task.yaml            # 后台任务部署
+├── ingress.yaml              # Traefik Ingress配置
+├── kustomization.yaml        # Kustomize配置
+├── README.md                 # 本文件
+└── network/                  # 网络安全配置
+    ├── network-policy.yaml   # 网络策略
+    └── waf-configmap.yaml    # WAF配置（为未来Nginx准备）
 ```
 
 ## 前置要求
 
 1. **Kubernetes集群** (v1.19+)
+   ```bash
+    curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | INSTALL_K3S_MIRROR=cn INSTALL_K3S_EXEC="server" sh -s - --tls-san <YOUR_EXTERNAL_IP> --node-external-ip <YOUR_EXTERNAL_IP> --docker
+    ```
 2. **kubectl** 命令行工具
 3. **Docker镜像** 已构建并推送到镜像仓库
-4. **Ingress Controller** (如nginx-ingress)
+   ```bash
+   rmmt-api:latest
+   rmmt-student:latest
+   rmmt-admin:latest
+   mysql:8.0
+   adminer:latest
+   ```
+4. **Traefik Ingress Controller** (v2.10+)(在安装Kubernetes的时候会顺便安装)
 5. **cert-manager** (用于SSL证书)
+   ```bash
+   kubectl apply -f tls/cert-manager.yaml
+   kubectl apply -f tls/cluster-issuer.yaml
+   ```
 
 ## 部署步骤
 
 ### 1. 构建Docker镜像
 
+Docker镜像构建在对应Repo的仓库中均有Actions提供，可以直接运行Actions便可以自动推送到jaredanjerry/rmmt-api、jaredanjerry/rmmt-student、jaredanjerry/rmmt-admin中，只需要按照下列步骤拉取相应镜像即可
+
 ```bash
-# 构建API镜像
-cd RMMT-API
-docker build -t rmmt-api:latest .
-
-# 构建Student前端镜像
-cd RMMT-Student
-docker build -t rmmt-student:latest .
-
-# 构建Admin前端镜像
-cd RMMT-Admin
-docker build -t rmmt-admin:latest .
-
-# 推送到镜像仓库（可选）
-docker tag rmmt-api:latest your-registry/rmmt-api:latest
-docker tag rmmt-student:latest your-registry/rmmt-student:latest
-docker tag rmmt-admin:latest your-registry/rmmt-admin:latest
-docker push your-registry/rmmt-api:latest
-docker push your-registry/rmmt-student:latest
-docker push your-registry/rmmt-admin:latest
+docker pull docker.1ms.run/jaredanjerry/rmmt-api:latest # 在国内服务器要使用registry
+docker pull docker.1ms.run/jaredanjerry/rmmt-student:latest
+docker pull docker.1ms.run/jaredanjerry/rmmt-admin:latest
+docker tag docker.1ms.run/jaredanjerry/rmmt-api:latest rmmt-api:latest
+docker tag docker.1ms.run/jaredanjerry/rmmt-student:latest rmmt-student:latest
+docker tag docker.1ms.run/jaredanjerry/rmmt-admin:latest rmmt-admin:latest
 ```
 
 ### 2. 更新配置
@@ -85,6 +120,7 @@ docker push your-registry/rmmt-admin:latest
 2. **域名**: 在ingress.yaml中更新域名
 3. **密钥**: 在secret.yaml中更新敏感信息
 4. **配置**: 在configmap.yaml中更新应用配置
+5. **tls证书**: 在tls/rmmt-certificate.yaml中更新tls证书（对应域名）
 
 ### 3. 部署到Kubernetes
 
@@ -122,9 +158,9 @@ kubectl logs -f deployment/rmmt-admin -n rmmt
 
 部署成功后，可以通过以下地址访问：
 
-- **学生前端**: https://student.rmmt.example.com
-- **管理前端**: https://admin.rmmt.example.com
-- **API服务**: https://api.rmmt.example.com
+- **学生前端**: https://roommate.seth24.com
+- **管理前端**: https://rmadmin.seth24.com
+- **数据库管理**: https://rmapi.seth24.com
 
 ## 配置说明
 
@@ -139,10 +175,29 @@ kubectl logs -f deployment/rmmt-admin -n rmmt
 
 - **API服务**: 256Mi-512Mi内存，250m-500m CPU
 - **前端服务**: 128Mi-256Mi内存，100m-200m CPU
+- **数据库**: 512Mi-1Gi内存，500m-1000m CPU
+- **后台任务**: 512Mi-1Gi内存，200m-500m CPU
 
-### 健康检查
+### 安全配置
 
-所有服务都配置了liveness和readiness探针，确保服务健康状态。
+当前Traefik配置包含以下安全特性：
+
+```yaml
+# HTTPS重定向
+traefik.ingress.kubernetes.io/ssl-redirect: "true"
+
+# 安全头
+traefik.ingress.kubernetes.io/headers-custom-response-headers: |
+  X-Frame-Options:SAMEORIGIN,
+  X-Content-Type-Options:nosniff,
+  X-XSS-Protection:1; mode=block,
+  Referrer-Policy:no-referrer-when-downgrade,
+  Content-Security-Policy:default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval'
+
+# 速率限制
+traefik.ingress.kubernetes.io/rate-limit: "100"
+traefik.ingress.kubernetes.io/rate-limit-burst: "200"
+```
 
 ## 扩展和缩放
 
@@ -155,13 +210,6 @@ kubectl scale deployment rmmt-student --replicas=3 -n rmmt
 kubectl scale deployment rmmt-admin --replicas=3 -n rmmt
 ```
 
-## 故障排除
-
-1. **Pod启动失败**: 检查镜像是否存在，配置是否正确
-2. **服务无法访问**: 检查Service和Ingress配置
-3. **API连接失败**: 检查网络策略和防火墙设置
-4. **证书问题**: 检查cert-manager配置
-
 ## 备份和恢复
 
 ```bash
@@ -172,18 +220,13 @@ kubectl get all -n rmmt -o yaml > rmmt-backup.yaml
 kubectl apply -f rmmt-backup.yaml
 ```
 
-## 监控和日志
+## 未来计划
 
-建议配置以下监控：
+由于配置时间有限，目前k8s系统没有添加系统监控，日志管理和高级防火墙（仅有Traefik流量控制和每个镜像自带的nginx），后续计划添加
 
-1. **Prometheus + Grafana**: 监控应用指标
-2. **ELK Stack**: 集中日志管理
-3. **AlertManager**: 告警通知
+建议配置以下：
 
-## 安全建议
-
-1. 使用RBAC控制访问权限
-2. 定期更新密钥和证书
-3. 启用网络策略
-4. 配置资源限制
-5. 使用安全上下文
+[ ] **Prometheus + Grafana**: 监控应用指标
+[ ] **ELK Stack**: 集中日志管理
+[ ] **AlertManager**: 告警通知
+[ ] **Nginx Ingress Controller + WAF**: 高级防火墙（在部署的时候需要disable traefik）

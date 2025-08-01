@@ -81,7 +81,6 @@ kubectl get ingress -n rmmt
 echo ""
 echo "🔒 安全策略状态："
 kubectl get networkpolicy -n rmmt
-kubectl get psp rmmt-psp
 
 echo ""
 echo -e "${GREEN}🎉 安全部署完成！${NC}"
